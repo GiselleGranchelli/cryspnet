@@ -39,7 +39,9 @@ def main():
     args = parser.parse_args()
 
     if args.no_cuda:
-        defaults.device = torch.device('cpu')
+        cpu = True
+    else:
+        cpu = False
     if args.use_metal and args.use_oxide:
         raise Exception("Could only select --use_metal or --use_oxide")
     elif args.use_metal:
