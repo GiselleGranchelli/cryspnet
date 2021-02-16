@@ -296,6 +296,80 @@ def process_formula_only(one:pd.Series, output:Path, n_trails:int, max_atoms:int
     logging.info(f"finished {formula}")
     return formulas, paths
 
+def generate_crystals(input: str,  output: str, error: str = DEFAULT_ERROR, topn_bravais: int = 2, topn_spacegroup: int = 1,
+             n_workers: int = 4, n_trails: int = 100, timeout: int = 100,
+             formula_only: bool = False, space_group_only: bool = False, max_atoms: int = 50):
+    if error is not None and Path(error).exists():
+        with open(error, "rb") as f:
+            err_dict = pickle.load(f)
+        logging.info(f"use error from {error}")
+    else:
+        logging.info("do not use error")
+        err_dict = None
+
+    csv = pd.read_csv(input, header=[0, 1])
+
+    stoi_entries = csv.loc[csv['formula']['-'].map(is_stoi)]
+
+    output = Path(output)
+    output.mkdir(exist_ok=True)
+
+    topn_bravais = min(topn_bravais, get_max_topn_bravais(stoi_entries))
+    topn_spacegroup = min(topn_spacegroup, get_max_topn_spacegroup(stoi_entries))
+
+    if n_workers <= 0:
+        raise Exception("argument number of worker is less than 1")
+    elif n_workers == 1:
+        logging.info(f"use single process")
+        for i, row in tqdm(stoi_entries.iterrows(), total=len(stoi_entries)):
+            if formula_only:
+                f, p = process_formula_only(row, output=output, n_trails=n_trails, max_atoms=max_atoms)
+            elif space_group_only:
+                f, p = process_space_group_only(row, output=output, n_trails=n_trails, topn_bravais=topn_bravais,
+                                                topn_spacegroup=topn_spacegroup, max_atoms=max_atoms)
+            else:
+                f, p = process(row, output=output, n_trails=n_trails, topn_bravais=topn_bravais,
+                               topn_spacegroup=topn_spacegroup, max_atoms=max_atoms, err_dict=err_dict)
+    else:
+        logging.info(f"use multiprocess with {n_workers} worders")
+        if formula_only:
+            f = partial(process_formula_only, output=output, n_trails=n_trails, max_atoms=max_atoms)
+        elif space_group_only:
+            f = partial(process_space_group_only, output=output, n_trails=n_trails, topn_bravais=topn_bravais,
+                        topn_spacegroup=topn_spacegroup, max_atoms=max_atoms)
+        else:
+            f = partial(process, output=output, n_trails=n_trails, topn_bravais=topn_bravais,
+                        topn_spacegroup=topn_spacegroup, max_atoms=max_atoms, err_dict=err_dict)
+
+        with Pool(processes=n_workers) as pool:
+            async_list = []
+            formula_list = []
+            for i, row in stoi_entries.iterrows():
+                formula = row['formula']['-']
+                formula_list.append(formula)
+                res = pool.apply_async(f, (row,))  # this (row, ) could be further changed by chunksize
+                async_list.append(res)
+
+            for res, formula in zip(async_list, formula_list):
+                try:
+                    fs, ps = res.get(timeout=timeout)
+                except TimeoutError:
+                    logging.info(f"{formula} timeout in {timeout}s!")
+                except Exception as e:
+                    logging.error(f"Other Error encounter {e}")
+                finally:
+                    pass
+
+    all_cifs = list(output.glob("*.cif"))
+    formulas = list(map(lambda x: x.name.split('_')[0], all_cifs))
+
+    pd.DataFrame({
+        "formula": formulas,
+        "path": list(map(lambda x: x.name, all_cifs)),
+    }).to_csv(str(output / "index.csv"), index=False)
+
+    logging.info("Index file is saved to --> {}".format(str(output / "index.csv")))
+
 def main():
     parser = argparse.ArgumentParser()
 
@@ -340,71 +414,8 @@ def main():
 
     args = parser.parse_args()
 
-    if args.error is not None and Path(args.error).exists():
-        with open(args.error, "rb") as f:
-            err_dict = pickle.load(f)
-        logging.info(f"use error from {args.error}")
-    else:
-        logging.info("do not use error")
-        err_dict = None
-
-    csv = pd.read_csv(args.input,  header=[0,1])
-    stoi_entries = csv.loc[ csv['formula']['-'].map(is_stoi) ]
-
-    output = Path(args.output)
-    output.mkdir(exist_ok=True)
-    
-    topn_bravais = min(args.topn_bravais, get_max_topn_bravais(stoi_entries))
-    topn_spacegroup = min(args.topn_spacegroup, get_max_topn_spacegroup(stoi_entries))
-
-    if args.n_workers <= 0:
-        raise Exception("argument number of worker is less than 1")
-    elif args.n_workers == 1:
-        logging.info(f"use single process")
-        for i, row in tqdm(stoi_entries.iterrows(), total=len(stoi_entries)):
-            if args.formula_only:
-                f, p = process_formula_only(row, output=output, n_trails=args.n_trails, max_atoms=args.max_atoms)
-            elif args.space_group_only:
-                f, p = process_space_group_only(row, output=output, n_trails=args.n_trails, topn_bravais=topn_bravais, topn_spacegroup=topn_spacegroup, max_atoms=args.max_atoms)
-            else:
-                f, p = process(row, output=output, n_trails=args.n_trails, topn_bravais=topn_bravais, topn_spacegroup=topn_spacegroup, max_atoms=args.max_atoms, err_dict=err_dict)
-    else:
-        logging.info(f"use multiprocess with {args.n_workers} worders")
-        if args.formula_only:
-            f = partial(process_formula_only, output=output, n_trails=args.n_trails, max_atoms=args.max_atoms)
-        elif args.space_group_only:
-            f = partial(process_space_group_only, output=output, n_trails=args.n_trails, topn_bravais=topn_bravais, topn_spacegroup=topn_spacegroup, max_atoms=args.max_atoms)
-        else:
-            f = partial(process, output=output, n_trails=args.n_trails, topn_bravais=topn_bravais, topn_spacegroup=topn_spacegroup, max_atoms=args.max_atoms, err_dict=err_dict)
-        
-        with Pool(processes=args.n_workers) as pool:
-            async_list = []
-            formula_list = []
-            for i, row in stoi_entries.iterrows():
-                formula = row['formula']['-']
-                formula_list.append(formula)
-                res = pool.apply_async(f, (row,)) # this (row, ) could be further changed by chunksize
-                async_list.append(res)
-
-            for res, formula in zip(async_list, formula_list):
-                try:
-                    fs, ps  = res.get(timeout=args.timeout)
-                except TimeoutError:
-                    logging.info(f"{formula} timeout in {args.timeout}s!")
-                except Exception as e:
-                    logging.error(f"Other Error encounter {e}")
-                finally:
-                    pass
-
-    all_cifs = list(output.glob("*.cif"))
-    formulas = list(map(lambda x: x.name.split('_')[0], all_cifs))
-
-    pd.DataFrame({
-        "formula" : formulas,
-        "path" : list(map(lambda x: x.name, all_cifs)),
-    }).to_csv(str(output/"index.csv"), index=False)
-
-    logging.info("Index file is saved to --> {}".format(str(output/"index.csv")))
+    generate_crystals(args.input, args.error, args.output, args.topn_bravais, args.topn_spacegroup, args.n_workers,
+             args.n_trails, args.timeout, args.formula_only, args.space_group_only, args.max_atoms)
 
 if __name__ == "__main__":
     main()
