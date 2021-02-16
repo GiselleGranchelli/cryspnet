@@ -6,6 +6,36 @@ import argparse
 
 featurizer = FeatureGenerator()
 
+def make_predictions(input:str, output:str, which:str='whole', topn_bravais:int=TOPN_BRAVAIS,
+                     topn_spacegroup:int=TOPN_SPACEGROUP, n_ensembler:int=N_ESMBLER,
+                     batch_size:bool=BATCHSIZE, cpu:bool=False):
+    BE = load_Bravais_models(
+        n_ensembler=n_ensembler,
+        which=which,
+        batch_size=batch_size,
+        cpu=cpu)
+    LPB = load_Lattice_models(batch_size=batch_size, cpu=cpu)
+    SGB = load_SpaceGroup_models(batch_size=batch_size, cpu=cpu)
+
+    formula = load_input(input)
+    ext_magpie = featurizer.generate(formula)
+
+    bravais_probs, bravais = BE.predicts(ext_magpie, topn_bravais=topn_bravais)
+
+    lattices = []
+    spacegroups = []
+    spacegroups_probs = []
+
+    for i in range(topn_bravais):
+        ext_magpie["Bravais"] = bravais[:, i]
+        lattices.append(LPB.predicts(ext_magpie))
+        sg_prob, sg = SGB.predicts(ext_magpie, topn_spacegroup=topn_spacegroup)
+        spacegroups.append(sg)
+        spacegroups_probs.append(sg_prob)
+
+    out = group_outputs(bravais, bravais_probs, spacegroups, spacegroups_probs, lattices, formula)
+    dump_output(out, output + "/predictions.csv", index=False)
+
 def main():
 
     parser = argparse.ArgumentParser()
@@ -51,32 +81,9 @@ def main():
     else:
         which = "whole"
 
-    BE = load_Bravais_models(
-            n_ensembler = args.n_ensembler,
-            which = which,
-            batch_size = args.batch_size,
-            cpu=cpu)
-    LPB = load_Lattice_models(batch_size = args.batch_size, cpu=cpu)
-    SGB = load_SpaceGroup_models(batch_size = args.batch_size, cpu=cpu)
-
-    formula = load_input(args.input)
-    ext_magpie = featurizer.generate(formula)
-
-    bravais_probs, bravais = BE.predicts(ext_magpie, topn_bravais=args.topn_bravais)
-
-    lattices = []
-    spacegroups = []
-    spacegroups_probs = []
-
-    for i in range(args.topn_bravais):
-        ext_magpie["Bravais"] = bravais[:, i]
-        lattices.append(LPB.predicts(ext_magpie))
-        sg_prob, sg = SGB.predicts(ext_magpie, topn_spacegroup=args.topn_spacegroup)
-        spacegroups.append(sg)
-        spacegroups_probs.append(sg_prob)
-
-    out = group_outputs(bravais, bravais_probs, spacegroups, spacegroups_probs, lattices, formula)
-    dump_output(out, args.output, index=False)
+    make_predictions(args.input, args.output, which, args.topn_bravais,
+                        args.topn_spacegroup, args.n_esembler,
+                        args.batch_size, cpu)
 
 if __name__ == "__main__":
     main()
