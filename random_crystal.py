@@ -414,7 +414,7 @@ def main():
 
     args = parser.parse_args()
 
-    generate_crystals(args.input, args.error, args.output, args.topn_bravais, args.topn_spacegroup, args.n_workers,
+    generate_crystals(args.input, args.output, args.error, args.topn_bravais, args.topn_spacegroup, args.n_workers,
              args.n_trails, args.timeout, args.formula_only, args.space_group_only, args.max_atoms)
 
 if __name__ == "__main__":
