@@ -54,9 +54,10 @@ def main():
     BE = load_Bravais_models(
             n_ensembler = args.n_ensembler,
             which = which,
-            batch_size = args.batch_size)
-    LPB = load_Lattice_models(batch_size = args.batch_size)
-    SGB = load_SpaceGroup_models(batch_size = args.batch_size)
+            batch_size = args.batch_size,
+            cpu=cpu)
+    LPB = load_Lattice_models(batch_size = args.batch_size, cpu=cpu)
+    SGB = load_SpaceGroup_models(batch_size = args.batch_size, cpu=cpu)
 
     formula = load_input(args.input)
     ext_magpie = featurizer.generate(formula)
