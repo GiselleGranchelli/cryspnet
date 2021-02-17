@@ -14,7 +14,7 @@ import numpy as np
 from pyxtal.structure import Xstruct
 from pyxtal.crystal import random_crystal, Lattice
 
-import pymatgen
+from pymatgen.core.composition import Composition
 
 from typing import Dict, List, Union
 
@@ -97,10 +97,18 @@ def is_stoi(formula:str):
 
 def decomp(formula:str):
     """ parse formula into elements and stoichiometric """
-    groups = re.findall("([A-Za-z]{1,2})([0-9]+)", formula)
-    
-    elements, stois = list( zip(*groups) )
-    stois = list(map(int, stois))
+    comp = Composition(formula)
+    form = comp.formula
+    formula = form.split(" ")
+
+    elements = []
+    stois = []
+    for elem in formula:
+        match = re.match(r"([a-z]+)([0-9]+)", elem, re.I)
+        group = match.groups()
+        elements.append(group[0])
+
+        stois.append(int(group[1]))
     return elements, stois
 
 def try_random_crystal(formula:str, sg:int, elements:List[str], stois:Union[List[int], np.ndarray], lattice:Lattice=None, vf:float=1.0, max_multi:int=5, max_atoms:int=50, start:int=-1):
