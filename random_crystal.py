@@ -95,6 +95,16 @@ def is_stoi(formula:str):
     """ check if the formula contain fractional stoichiometric """
     return "." not in formula
 
+def make_stoi(formula:str):
+    if not is_stoi(formula):
+        comp = Composition(formula)
+        formula = comp.get_integer_formula_and_factor()[0]
+        comp = Composition(formula)
+        comp = comp.as_dict()
+        formula = [el + str((int(stoi)) for el, stoi in comp]
+        formula = "".join(formula)
+    return formula
+
 def decomp(formula:str):
     """ parse formula into elements and stoichiometric """
     comp = Composition(formula)
@@ -316,7 +326,7 @@ def generate_crystals(input: str,  output: str, error: str = DEFAULT_ERROR, topn
         err_dict = None
 
     csv = pd.read_csv(input, header=[0, 1])
-
+    csv['formula']['-'] = csv['formula']['-'].map(make_stoi)
     stoi_entries = csv.loc[csv['formula']['-'].map(is_stoi)]
 
     output = Path(output)
