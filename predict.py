@@ -34,8 +34,11 @@ def make_predictions(input:str, output:str, which:str='whole', topn_bravais:int=
         spacegroups.append(sg)
         spacegroups_probs.append(sg_prob)
 
+    if output[-3:] != ".csv":
+        output = output+"/predictions.csv"
+
     out = group_outputs(bravais, bravais_probs, spacegroups, spacegroups_probs, lattices, formula)
-    dump_output(out, output + "/predictions.csv", index=False)
+    dump_output(out, output, index=False)
 
 def main():
 
