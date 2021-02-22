@@ -108,17 +108,9 @@ def make_stoi(formula:str):
 def decomp(formula:str):
     """ parse formula into elements and stoichiometric """
     comp = Composition(formula)
-    form = comp.formula
-    formula = form.split(" ")
-
-    elements = []
-    stois = []
-    for elem in formula:
-        match = re.match(r"([a-z]+)([0-9]+)", elem, re.I)
-        group = match.groups()
-        elements.append(group[0])
-
-        stois.append(int(group[1]))
+    comp = comp.as_dict()
+    elements = comp.keys()
+    stois = comp.values()
     return elements, stois
 
 def try_random_crystal(formula:str, sg:int, elements:List[str], stois:Union[List[int], np.ndarray], lattice:Lattice=None, vf:float=1.0, max_multi:int=5, max_atoms:int=50, start:int=-1):
