@@ -1,7 +1,6 @@
 from cryspnet.utils import FeatureGenerator, load_input, dump_output, group_outputs, descriptionfile, topkacc
 from cryspnet.models import load_Bravais_models, load_Lattice_models, load_SpaceGroup_models
 from cryspnet.config import *
-from random_crystal import make_stoi
 
 import argparse
 
