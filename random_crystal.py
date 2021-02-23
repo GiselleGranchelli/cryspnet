@@ -386,6 +386,7 @@ def generate_crystals(input: str,  output: str, error: str = DEFAULT_ERROR, topn
         "path": list(map(lambda x: x.name, all_cifs)),
     }).to_csv(str(output / "index.csv"), index=False)
 
+    descriptionfile("crystals", **args)
     logging.info("Index file is saved to --> {}".format(str(output / "index.csv")))
 
 def main():
