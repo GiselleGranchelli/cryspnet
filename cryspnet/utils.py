@@ -132,7 +132,29 @@ def group_outputs(bravais:np.array, bravais_probs:np.array, spacegroups:List[np.
 
     return out
 
-# top-k accuracy, since fastaiv2's top-k acc metric is currently not working 
+def descriptionfile(caller:str, **kwargs):
+    """
+        creates an output text file with values of arguments used for prediction or random crystal generations
+
+    """
+    if kwargs["run_version"] == None:
+        filename = "run_parameters.txt"
+    else:
+        filename = f"run_parameters_{kwargs['run_version']}.txt"
+
+
+    if caller == "prediction":
+        out = open(f"{kwargs['output']}/{filename}", "w")
+        out.write("Predictions were made with the following arguments: \n")
+    if caller == "crystals":
+        out = open(f"{kwargs['output']}/{filename}", "a")
+        out.write("Crystals were generated with the following arguments:")
+    for argument, value in kwargs.items():
+        out.write("%s : %s \n" % (argument, value))
+
+    out.close()
+
+# top-k accuracy, since fastaiv2's top-k acc metric is currently not working
 def topkacc(inp, targ, k=5, axis=-1):
     "Computes the Top-k accuracy (`targ` is in the top `k` predictions of `inp`)"
     inp = inp.topk(k=k, dim=axis)[1]
