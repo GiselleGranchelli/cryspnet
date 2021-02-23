@@ -109,8 +109,8 @@ def decomp(formula:str):
     """ parse formula into elements and stoichiometric """
     comp = Composition(formula)
     comp = comp.as_dict()
-    elements = comp.keys()
-    stois = comp.values()
+    elements, stois = list(zip(*comp.items()))
+    stois = list(map(int, stois))
     return elements, stois
 
 def try_random_crystal(formula:str, sg:int, elements:List[str], stois:Union[List[int], np.ndarray], lattice:Lattice=None, vf:float=1.0, max_multi:int=5, max_atoms:int=50, start:int=-1):
