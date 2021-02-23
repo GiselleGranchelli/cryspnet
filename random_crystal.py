@@ -21,7 +21,7 @@ from cryspnet.utils import LATTICE_PARAM_ERROR, LATTICE_PARAM_MODELS_FOLDER, LEA
 
 DEFAULT_ERROR = str( Path(LEARNER) / Path(LATTICE_PARAM_MODELS_FOLDER) / Path(LATTICE_PARAM_ERROR) )
 
-logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
+logging.basicConfig(format='%(asctime)s %(message)s', level=logging.DEBUG)
 
 def is_valid_crystal(rc:random_crystal):
     return (rc is not None) and rc.valid
@@ -100,7 +100,7 @@ def make_stoi(formula:str):
         formula = comp.get_integer_formula_and_factor()[0]
         comp = Composition(formula)
         comp = comp.as_dict()
-        formula = [el + str((int(stoi)) for el, stoi in comp]
+        formula = [f"{el}{str(int(stoi))}" for el, stoi in comp.items()]
         formula = "".join(formula)
     return formula
 
@@ -149,7 +149,7 @@ def try_random_crystal(formula:str, sg:int, elements:List[str], stois:Union[List
         for multi in range(1, max_multi+1):
             if max_atoms >= np.sum(stois) * multi:
                 crystal= _try(formula, int(sg), list(elements), list(stois*multi), lattice, vf)
-                logging.debug(f"_try Is crystal valid {is_valid_crystal(crystal)}" )
+                logging.debug(f"_try: formula: {formula} mul: {multi} Is valid crystal  {is_valid_crystal(crystal)}" )
                 if is_valid_crystal(crystal): return crystal, multi
         return None, -1
     else:
@@ -213,7 +213,7 @@ def process(one:pd.Series, output:Path, n_trails:int, topn_bravais:int, topn_spa
             for trail, lattice in enumerate(sample_lattice(one[f'Top-{topn_b} Bravais'], bra, n_trails, err_dict=err_dict)):
                 rc, mul = try_random_crystal(formula, sg, elements, stois, lattice=lattice, start=mul, max_atoms=max_atoms)
 
-                logging.debug(f"Process is_valid_crystal {is_valid_crystal(rc)}")
+                logging.debug(f"Process: {formula} {mul} is_valid_crystal {is_valid_crystal(rc)}")
                 if is_valid_crystal(rc):
                     path = output/f"{formula}_{sg}_{trail}.cif"
                     save_random_crystal(rc, path)
@@ -368,7 +368,7 @@ def generate_crystals(input: str,  output: str, error: str = DEFAULT_ERROR, topn
                 except TimeoutError:
                     logging.info(f"{formula} timeout in {timeout}s!")
                 except Exception as e:
-                    logging.error(f"Other Error encounter {e}")
+                    logging.exception(f"Other Error encounter {e}")
                 finally:
                     pass
 
