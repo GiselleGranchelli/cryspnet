@@ -2,7 +2,6 @@ import argparse
 import pickle
 from pathlib import Path
 import time
-import re
 from multiprocessing import Pool, TimeoutError
 from functools import partial
 from tqdm import tqdm
@@ -18,7 +17,7 @@ from pymatgen.core.composition import Composition
 
 from typing import Dict, List, Union
 
-from cryspnet.utils import LATTICE_PARAM_ERROR, LATTICE_PARAM_MODELS_FOLDER, LEARNER
+from cryspnet.utils import LATTICE_PARAM_ERROR, LATTICE_PARAM_MODELS_FOLDER, LEARNER, descriptionfile
 
 DEFAULT_ERROR = str( Path(LEARNER) / Path(LATTICE_PARAM_MODELS_FOLDER) / Path(LATTICE_PARAM_ERROR) )
 
@@ -308,7 +307,10 @@ def process_formula_only(one:pd.Series, output:Path, n_trails:int, max_atoms:int
 
 def generate_crystals(input: str,  output: str, error: str = DEFAULT_ERROR, topn_bravais: int = 2, topn_spacegroup: int = 1,
              n_workers: int = 4, n_trails: int = 100, timeout: int = 100,
-             formula_only: bool = False, space_group_only: bool = False, max_atoms: int = 50):
+             formula_only: bool = False, space_group_only: bool = False, max_atoms: int = 50,  run_version:str=None):
+
+    args = {key: value for key, value in locals().items() if key not in 'self'}
+
     if error is not None and Path(error).exists():
         with open(error, "rb") as f:
             err_dict = pickle.load(f)
@@ -318,7 +320,7 @@ def generate_crystals(input: str,  output: str, error: str = DEFAULT_ERROR, topn
         err_dict = None
 
     csv = pd.read_csv(input, header=[0, 1])
-    csv['formula']['-'] = csv['formula']['-'].map(make_stoi)
+    csv.loc[:, ('formula', '-')] = csv['formula']['-'].map(make_stoi)
     stoi_entries = csv.loc[csv['formula']['-'].map(is_stoi)]
 
     output = Path(output)
@@ -422,11 +424,17 @@ def main():
     parser.add_argument("--max_atoms", default=50, type=int,
                         help="the maximum number of atoms per unit cell, setted to avoid generating superlarge unit cell that slow down the calculation"
     )
+    parser.add_argument("-max_multi", default=5, type=int,
+                        help="the maximum value of multiplicity would be tried on")
+    parser.add_argument("--run_version", default=None, type=str,
+                        help="Any descriptor that the user may want to add to characterize the run. \
+                        Will be appended to the end of the descriptor file name."
+                        )
 
     args = parser.parse_args()
 
     generate_crystals(args.input, args.output, args.error, args.topn_bravais, args.topn_spacegroup, args.n_workers,
-             args.n_trails, args.timeout, args.formula_only, args.space_group_only, args.max_atoms)
+             args.n_trails, args.timeout, args.formula_only, args.space_group_only, args.max_atoms, args.run_version)
 
 if __name__ == "__main__":
     main()

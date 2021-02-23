@@ -1,6 +1,7 @@
-from cryspnet.utils import FeatureGenerator, load_input, dump_output, group_outputs, topkacc
+from cryspnet.utils import FeatureGenerator, load_input, dump_output, group_outputs, descriptionfile, topkacc
 from cryspnet.models import load_Bravais_models, load_Lattice_models, load_SpaceGroup_models
 from cryspnet.config import *
+from random_crystal import make_stoi
 
 import argparse
 
@@ -8,7 +9,18 @@ featurizer = FeatureGenerator()
 
 def make_predictions(input:str, output:str, which:str='whole', topn_bravais:int=TOPN_BRAVAIS,
                      topn_spacegroup:int=TOPN_SPACEGROUP, n_ensembler:int=N_ESMBLER,
-                     batch_size:bool=BATCHSIZE, cpu:bool=False):
+                     batch_size:bool=BATCHSIZE, cpu:bool=False, run_version:str=None):
+    args = {key: value for key, value in locals().items() if key not in 'self'}
+
+    if output[-3:] != ".csv":
+        file_path = output + "predictions.csv"
+        output = Path(output)
+    else:
+        file_path = output
+        output = Path(output[:output.rfind("//")])
+
+    output.mkdir(exist_ok=True)
+
     BE = load_Bravais_models(
         n_ensembler=n_ensembler,
         which=which,
@@ -34,11 +46,9 @@ def make_predictions(input:str, output:str, which:str='whole', topn_bravais:int=
         spacegroups.append(sg)
         spacegroups_probs.append(sg_prob)
 
-    if output[-3:] != ".csv":
-        output = output+"/predictions.csv"
-
     out = group_outputs(bravais, bravais_probs, spacegroups, spacegroups_probs, lattices, formula)
-    dump_output(out, output, index=False)
+    dump_output(out, file_path, index=False)
+    descriptionfile("prediction", **args)
 
 def main():
 
@@ -69,6 +79,10 @@ def main():
                         help="Batch size per GPU/CPU for prediction.")
     parser.add_argument("--no_cuda", action='store_true',
                         help="Avoid using CUDA when available")
+    parser.add_argument("--run_version", default=None, type=str,
+                        help="Any descriptor that the user may want to add to characterize the run. \
+                            Will be appended to the end of the descriptor file name."
+                        )
 
     args = parser.parse_args()
 
