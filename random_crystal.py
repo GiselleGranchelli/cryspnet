@@ -11,7 +11,8 @@ import pandas as pd
 import numpy as np
 
 from pyxtal.structure import Xstruct
-from pyxtal.crystal import random_crystal, Lattice
+from pyxtal import Lattice
+from pyxtal import pyxtal
 
 from pymatgen.core.composition import Composition
 
@@ -23,7 +24,9 @@ DEFAULT_ERROR = str( Path(LEARNER) / Path(LATTICE_PARAM_MODELS_FOLDER) / Path(LA
 
 logging.basicConfig(format='%(asctime)s %(message)s', level=logging.DEBUG)
 
-def is_valid_crystal(rc:random_crystal):
+struct = pyxtal()
+
+def is_valid_crystal(rc:pyxtal):
     return (rc is not None) and rc.valid
 
 def sample_lattice(one:pd.Series, bra:str, trails:int, err_dict:Dict=None):
@@ -39,6 +42,9 @@ def sample_lattice(one:pd.Series, bra:str, trails:int, err_dict:Dict=None):
     """
 
     lt = bra.split(" ")[0]
+    if (lt == "rhombohedral"):
+        lt = 'trigonal' # pyxtal refers to rhombehdral as trigonal
+
     if err_dict is None:
         a,b,c,alpha,beta,gamma = one[['a','b', 'c', 'alpha', 'beta', 'gamma']]
         a,b,c,alpha,beta,gamma = float(a), float(b), float(c), float(alpha),float(beta),float(gamma)
@@ -112,7 +118,7 @@ def decomp(formula:str):
     stois = list(map(int, stois))
     return elements, stois
 
-def try_random_crystal(formula:str, sg:int, elements:List[str], stois:Union[List[int], np.ndarray], lattice:Lattice=None, vf:float=1.0, max_multi:int=5, max_atoms:int=50, start:int=-1):
+def try_random_crystal(formula:str, sg:int, elements:List[str], stois:Union[List[int], np.ndarray], lattice:Lattice=None, vf:float=1.1, max_multi:int=5, max_atoms:int=50, start:int=-1):
     """
         Try to generate a crystal from given space group, elements, stoichiometric, and lattice (optional) information.
         Due to mechanism of Pyxtal, the input stoichiometric might need to be multiplied by a integar. The max_multi set the 
@@ -133,7 +139,7 @@ def try_random_crystal(formula:str, sg:int, elements:List[str], stois:Union[List
     def _try(formula:str, sg:int, elements:List[str], stois:Union[List[int], np.ndarray], lattice:Lattice, vf:float):
         try:
             # logging.debug( f"{formula} {sg} {elements} {stois} {lattice} {vf}")
-            crystal = random_crystal(sg, elements, stois, vf, lattice=lattice)
+            crystal = struct.from_random(3, sg, elements, stois, vf, lattice=lattice, conventional=False)
             logging.debug(f"_try Is crystal valid {is_valid_crystal(crystal)}" )
         except Exception as e:
             logging.error(f"During random crystal generation: \n {formula} {sg} {elements} {stois} \n Error Message: {e}")
@@ -149,7 +155,7 @@ def try_random_crystal(formula:str, sg:int, elements:List[str], stois:Union[List
         for multi in range(1, max_multi+1):
             if max_atoms >= np.sum(stois) * multi:
                 crystal= _try(formula, int(sg), list(elements), list(stois*multi), lattice, vf)
-                logging.debug(f"_try: formula: {formula} mul: {multi} Is valid crystal  {is_valid_crystal(crystal)}" )
+                logging.info(f"_try: formula: {formula} mul: {multi} Is valid crystal  {is_valid_crystal(crystal)}" )
                 if is_valid_crystal(crystal): return crystal, multi
         return None, -1
     else:
@@ -171,7 +177,7 @@ def get_max_topn_spacegroup(df:pd.DataFrame):
     l2 = [ int(c.split(" ")[0].split("-")[1]) for c in l2 if "SpaceGroup" in c]
     return max(l2)
 
-def save_random_crystal(rc:random_crystal, path:str):
+def save_random_crystal(rc:pyxtal, path:str):
     """ save the generated crystal to cif format"""
 
     rc.to_file(fmt='cif', filename=path)
