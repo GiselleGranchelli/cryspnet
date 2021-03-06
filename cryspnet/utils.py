@@ -28,45 +28,51 @@ from matminer.featurizers import composition as cf
 
 from .config import *
 
-import Equation # math expression parser
+import Equation  # math expression parser
 
 from typing import List
 
 __all__ = ["to_np", "ELEMENTS", "NON_METAL_ELEMENTS", "METAL_ELEMENTS", "is_oxide", "is_metal", "has_metal",
-        "load_input", "dump_output", "group_outputs", "topkacc", "FeatureGenerator", "oversample"]
+           "load_input", "dump_output", "group_outputs", "topkacc", "FeatureGenerator", "oversample"]
+
 
 # pytorch stuff
 def to_np(x):
-    "Convert a tensor to a numpy array."
+    """Convert a tensor to a numpy array. """
     return x.data.cpu().numpy()
 
+
 ELEMENTS = set(['Pu', 'Re', 'Y', 'Bk', 'S', 'Hf', 'Br', 'Eu', 'Al', 'Li',
-    'Md', 'Sm', 'Be', 'B', 'No', 'Te', 'Kr', 'Co', 'P', 'Cu', 'N', 'Ac',
-    'Nd','Yb', 'Gd', 'Tb', 'Es', 'Fr', 'Th', 'Si', 'Zr', 'Na', 'Pd', 'U',
-    'Ni', 'Rn', 'H', 'Cl', 'Au', 'Lu', 'Pr', 'Pa', 'In', 'Er', 'Mn', 'I',
-    'Ne', 'Os', 'Mg', 'O', 'Ga', 'F', 'Sr', 'Ru', 'Bi', 'Dy', 'Ra', 'Ho',
-    'Xe', 'Tm', 'As', 'Am', 'Ir', 'Hg', 'Sc', 'Cd', 'Cr', 'Se', 'Ta',
-    'Fm', 'Rb', 'Sn', 'Tc', 'Rh', 'Lr', 'Np', 'Pm', 'Pb', 'Ca', 'Cs',
-    'Nb', 'Ag', 'V', 'He', 'Zn', 'Mo', 'Ti', 'Sb', 'Fe', 'Ge', 'Po', 'La',
-    'Tl', 'Ba', 'Ce', 'C', 'Cm', 'Cf', 'Pt', 'W', 'K', 'Ar', 'At'])
+                'Md', 'Sm', 'Be', 'B', 'No', 'Te', 'Kr', 'Co', 'P', 'Cu', 'N', 'Ac',
+                'Nd', 'Yb', 'Gd', 'Tb', 'Es', 'Fr', 'Th', 'Si', 'Zr', 'Na', 'Pd', 'U',
+                'Ni', 'Rn', 'H', 'Cl', 'Au', 'Lu', 'Pr', 'Pa', 'In', 'Er', 'Mn', 'I',
+                'Ne', 'Os', 'Mg', 'O', 'Ga', 'F', 'Sr', 'Ru', 'Bi', 'Dy', 'Ra', 'Ho',
+                'Xe', 'Tm', 'As', 'Am', 'Ir', 'Hg', 'Sc', 'Cd', 'Cr', 'Se', 'Ta',
+                'Fm', 'Rb', 'Sn', 'Tc', 'Rh', 'Lr', 'Np', 'Pm', 'Pb', 'Ca', 'Cs',
+                'Nb', 'Ag', 'V', 'He', 'Zn', 'Mo', 'Ti', 'Sb', 'Fe', 'Ge', 'Po', 'La',
+                'Tl', 'Ba', 'Ce', 'C', 'Cm', 'Cf', 'Pt', 'W', 'K', 'Ar', 'At'])
 
 NON_METAL_ELEMENTS = set(["H", "He", "B", "C", "N", "O", "F", "Ne",
-                         "Si", "P", "S", "Cl", "Ar", "Ge", "As",
-                         "Se", "Br", "Kr", "Sb", "Te", "I",
-                         "Xe", "Po", "At", "Rn", "Ts", "Og"])
+                          "Si", "P", "S", "Cl", "Ar", "Ge", "As",
+                          "Se", "Br", "Kr", "Sb", "Te", "I",
+                          "Xe", "Po", "At", "Rn", "Ts", "Og"])
 
 METAL_ELEMENTS = ELEMENTS - NON_METAL_ELEMENTS
 
-def is_oxide(x:str)->bool:
-    return len(re.findall("O[0-9]", x))>0
 
-def is_metal(x:str)->bool:
+def is_oxide(x: str) -> bool:
+    return len(re.findall("O[0-9]", x)) > 0
+
+
+def is_metal(x: str) -> bool:
     return set(re.findall(r"([A-Za-z]+)[0-9\.]*", x)).issubset(METAL_ELEMENTS)
 
-def has_metal(x:str)->bool:
-    return len(set(re.findall(r"([A-Za-z]+)[0-9\.]*", x)) & METAL_ELEMENTS)>0
 
-def load_input(path:str)->pd.DataFrame:
+def has_metal(x: str) -> bool:
+    return len(set(re.findall(r"([A-Za-z]+)[0-9\.]*", x)) & METAL_ELEMENTS) > 0
+
+
+def load_input(path: str) -> pd.DataFrame:
     """
         Load the formula information from file designated by the path argument
         Currently supported format: .csv .xlsx .xls and space seperated text file
@@ -419,7 +425,8 @@ class SingleCompFeatureGenerator(FeatureGenerator):
         # generate the composition given the variable using the equation from Compound
         compositions = [eq(*variable_search_lists) for eq in self.eqs]
         compositions = [np.repeat(comp, self.n) if not isinstance(comp, np.ndarray) else comp for comp in compositions]
-        
+
+        eles = [ele.name for ele in compound.elements]
         composition_format = "{:.2f}".join(eles) + "{:.2f}"
         search_sheet['formula'] = [composition_format.format(*row) for row in np.stack(compositions, axis=1)]
         return self.generate(pd.DataFrame(search_sheet))
