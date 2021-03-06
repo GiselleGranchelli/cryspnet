@@ -13,7 +13,7 @@ def make_predictions(input:str, output:str, which:str='whole', topn_bravais:int=
     args = {key: value for key, value in locals().items() if key not in 'self'}
 
     if output[-3:] != ".csv":
-        file_path = output + "predictions.csv"
+        file_path = (output + f"predictions{run_version}.csv" if run_version else output + "predictions.csv")
         output = Path(output)
     else:
         file_path = output
@@ -30,7 +30,7 @@ def make_predictions(input:str, output:str, which:str='whole', topn_bravais:int=
     SGB = load_SpaceGroup_models(batch_size=batch_size, cpu=cpu)
 
     formula = load_input(input)
-    formula['formula'] = formula['formula'].map(make_stoi)
+    #formula['formula'] = formula['formula'].map(make_stoi)
     ext_magpie = featurizer.generate(formula)
 
     bravais_probs, bravais = BE.predicts(ext_magpie, topn_bravais=topn_bravais)
