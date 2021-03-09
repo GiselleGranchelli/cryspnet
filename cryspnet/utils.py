@@ -419,7 +419,8 @@ class SingleCompFeatureGenerator(FeatureGenerator):
         # generate the composition given the variable using the equation from Compound
         compositions = [eq(*variable_search_lists) for eq in self.eqs]
         compositions = [np.repeat(comp, self.n) if not isinstance(comp, np.ndarray) else comp for comp in compositions]
-        
+
+        eles = [ele.name for ele in compound.elements]
         composition_format = "{:.2f}".join(eles) + "{:.2f}"
         search_sheet['formula'] = [composition_format.format(*row) for row in np.stack(compositions, axis=1)]
         return self.generate(pd.DataFrame(search_sheet))

@@ -11,13 +11,12 @@ def make_predictions(input:str, output:str, which:str='whole', topn_bravais:int=
                      topn_spacegroup:int=TOPN_SPACEGROUP, n_ensembler:int=N_ESMBLER,
                      batch_size:bool=BATCHSIZE, cpu:bool=False, run_version:str=None):
     args = {key: value for key, value in locals().items() if key not in 'self'}
-
-    if output[-3:] != ".csv":
-        file_path = output + "predictions.csv"
-        output = Path(output)
+    output = Path(output)
+    if output.suffix != ".csv":
+        file_path = output.joinpath(f"predictions{run_version}.csv")
     else:
         file_path = output
-        output = Path(output[:output.rfind("//")])
+        output = output.parent
 
     output.mkdir(exist_ok=True)
 
@@ -46,6 +45,7 @@ def make_predictions(input:str, output:str, which:str='whole', topn_bravais:int=
         spacegroups_probs.append(sg_prob)
 
     out = group_outputs(bravais, bravais_probs, spacegroups, spacegroups_probs, lattices, formula)
+    out = out.drop_duplicates()
     dump_output(out, file_path, index=False)
     descriptionfile("prediction", **args)
 
