@@ -38,7 +38,12 @@ def sample_lattice(one:pd.Series, bra:str, trails:int, err_dict:Dict=None):
             err_dict : error from the lattice parameter model
     """
 
-    lt = bra.split(" ")[0]
+
+    if "rhombohedral" in bra:
+        lt = "trigonal"
+    else:
+        lt = bra.split(" ")[0]
+
     if err_dict is None:
         a,b,c,alpha,beta,gamma = one[['a','b', 'c', 'alpha', 'beta', 'gamma']]
         a,b,c,alpha,beta,gamma = float(a), float(b), float(c), float(alpha),float(beta),float(gamma)
