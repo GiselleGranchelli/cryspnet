@@ -263,15 +263,21 @@ def process_space_group_only(one:pd.Series, output:Path, n_trails:int, topn_brav
             sg = int(one[f'Top-{topn_b} Bravais'][f'Top-{topn_sg} SpaceGroup'])
 
             for trail in range(n_trails):
-                rc, mul = try_random_crystal(sg, elements, stois, lattice=None, start=mul, max_atoms=max_atoms)
-                if is_valid_crystal(rc): break
-                path = output/f"{formula}_{sg}_{trail}.cif"
-                save_random_crystal(rc, path)
+                rc, mul = try_random_crystal(formula, sg, elements, stois, lattice=None, start=mul, max_atoms=max_atoms)
 
-                formulas.append(formula)
-                paths.append(path)
+                logging.debug(f"Process: {formula} {mul} is_valid_crystal {is_valid_crystal(rc)}")
 
-    logging.info(f"finished {formula}")
+                if is_valid_crystal(rc):
+                    path = output/f"{formula}_{sg}_{trail}.cif"
+                    save_random_crystal(rc, path)
+
+                    formulas.append(formula)
+                    paths.append(path)
+
+                logging.info(f"{formula} maximum trail exceed at trail {trail} break")
+                break
+
+                logging.info(f"finished {formula}")
     return formulas, paths
 
 def process_formula_only(one:pd.Series, output:Path, n_trails:int, max_atoms:int):
