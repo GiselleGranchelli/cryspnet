@@ -21,7 +21,7 @@ from cryspnet.utils import LATTICE_PARAM_ERROR, LATTICE_PARAM_MODELS_FOLDER, LEA
 
 DEFAULT_ERROR = str( Path(LEARNER) / Path(LATTICE_PARAM_MODELS_FOLDER) / Path(LATTICE_PARAM_ERROR) )
 
-logging.basicConfig(format='%(asctime)s %(message)s', level=logging.DEBUG)
+logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
 
 def is_valid_crystal(rc:random_crystal):
     return (rc is not None) and rc.valid
@@ -40,7 +40,7 @@ def sample_lattice(one:pd.Series, bra:str, trails:int, err_dict:Dict=None):
 
 
     if "rhombohedral" in bra:
-        lt = "trigonal"
+        lt = "rhombohedral"
     else:
         lt = bra.split(" ")[0]
 
@@ -370,7 +370,7 @@ def generate_crystals(input: str,  output: str, error: str = DEFAULT_ERROR, topn
             for i, row in stoi_entries.iterrows():
                 formula = row['formula']['-']
                 formula_list.append(formula)
-                res = pool.apply_async(f, (row,))  # this (row, ) could be further changed by chunksize
+                res = pool.apply_async(f, (row,)) # this (row, ) could be further changed by chunksize
                 async_list.append(res)
 
             for res, formula in zip(async_list, formula_list):

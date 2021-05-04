@@ -1,7 +1,4 @@
 import torch
-# from fastai.tabular import LabelLists, TabularList, is_pathlike, defaults
-# from fastai.basic_data import DatasetType
-# from fastai.basic_train import load_callback
 from fastai.tabular.all import load_learner, accuracy
 
 import pickle

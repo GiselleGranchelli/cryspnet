@@ -19,16 +19,11 @@ def make_predictions(input:str, output:str, which:str='whole', topn_bravais:int=
 
     output.mkdir(exist_ok=True)
 
-    BE = load_Bravais_models(
-        n_ensembler=n_ensembler,
-        which=which,
-        batch_size=batch_size,
-        cpu=cpu)
+    BE = load_Bravais_models(n_ensembler=n_ensembler, which=which,batch_size=batch_size, cpu=cpu)
     LPB = load_Lattice_models(batch_size=batch_size, cpu=cpu)
     SGB = load_SpaceGroup_models(batch_size=batch_size, cpu=cpu)
 
     formula = load_input(input)
-    formula['formula'] = formula['formula'].map(make_stoi)
     ext_magpie = featurizer.generate(formula)
 
     bravais_probs, bravais = BE.predicts(ext_magpie, topn_bravais=topn_bravais)
@@ -88,7 +83,7 @@ def main():
     if args.no_cuda:
         cpu = True
     else:
-        cpu = False
+        cpu = False if torch.cuda.is_available() else True
     if args.use_metal and args.use_oxide:
         raise Exception("Could only select --use_metal or --use_oxide")
     elif args.use_metal:
