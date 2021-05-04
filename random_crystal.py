@@ -40,7 +40,7 @@ def sample_lattice(one:pd.Series, bra:str, trails:int, err_dict:Dict=None):
 
 
     if "rhombohedral" in bra:
-        lt = "rhombohedral"
+        lt = "trigonal"
     else:
         lt = bra.split(" ")[0]
 
